@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="text-center mb-4">
+            <h1 class="display-4">Welcome to Analyze This</h1>
+            <p class="lead">Your AI-powered CSV data analysis assistant</p>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Transform your data into insights</h2>
+
+                <div class="row g-4 py-3">
+                    <div class="col-md-4 text-center">
+                        <div class="feature-icon bg-primary bg-gradient text-white rounded-circle mb-3">
+                            <i class="bi bi-upload"></i>
+                        </div>
+                        <h5>Upload Your Data</h5>
+                        <p>Simply upload your CSV files and our app will parse them automatically</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="feature-icon bg-primary bg-gradient text-white rounded-circle mb-3">
+                            <i class="bi bi-chat-dots"></i>
+                        </div>
+                        <h5>Prompt Generation</h5>
+                        <p>Guided assistance to create effective analysis prompts</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="feature-icon bg-primary bg-gradient text-white rounded-circle mb-3">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <h5>AI-Powered Analysis</h5>
+                        <p>Claude AI generates comprehensive analytical reports</p>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('analysis.upload') }}" class="btn btn-primary btn-lg px-4 me-md-2">Start New
+                        Analysis</a>
+                    <a href="{{ url_for('analysis.history') }}" class="btn btn-outline-secondary btn-lg px-4">View
+                        History</a>
+                    {% else %}
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-4 me-md-2">Get Started</a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-secondary btn-lg px-4">Login</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
