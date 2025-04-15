@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
+<style>
+    .report-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+    }
+
+    .report-container h1,
+    .report-container h2,
+    .report-container h3,
+    .report-container h4,
+    .report-container h5,
+    .report-container h6 {
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+    }
+
+    .report-container h1 {
+        font-size: 1.8rem;
+    }
+
+    .report-container h2 {
+        font-size: 1.6rem;
+    }
+
+    .report-container h3 {
+        font-size: 1.4rem;
+    }
+
+    .report-container table {
+        width: 100%;
+        margin-bottom: 1rem;
+        border-collapse: collapse;
+    }
+
+    .report-container table th,
+    .report-container table td {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+    }
+
+    .report-container table th {
+        background-color: #f5f5f5;
+    }
+
+    .report-container pre {
+        background-color: #f5f5f5;
+        padding: 1rem;
+        border-radius: 4px;
+        overflow-x: auto;
+    }
+
+    .report-container img {
+        max-width: 100%;
+        height: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Analysis Report: {{ analysis.title }}</h2>
+            <div>
+                <button class="btn btn-outline-primary" id="edit-toggle-btn">Edit Report</button>
+                <a href="{{ url_for('analysis.export_report', analysis_id=analysis.id) }}"
+                    class="btn btn-success">Export Report</a>
+                <a href="{{ url_for('analysis.history') }}" class="btn btn-secondary">Back to History</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div id="report-display" class="report-container markdown-body">
+                    {{ analysis.report|safe }}
+                </div>
+
+                <form method="POST" id="report-edit-form" style="display: none;">
+                    <textarea id="report-edit" name="report" class="form-control"
+                        rows="20">{{ analysis.report }}</textarea>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                        <button type="button" class="btn btn-outline-secondary" id="cancel-edit-btn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/marked@4.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/highlight.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Render markdown content
+        const reportDisplay = document.getElementById('report-display');
+        reportDisplay.innerHTML = marked.parse(reportDisplay.textContent.trim());
+
+        // Apply syntax highlighting
+        document.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightBlock(block);
+        });
+
+        // Toggle edit mode
+        const editToggleBtn = document.getElementById('edit-toggle-btn');
+        const reportEditForm = document.getElementById('report-edit-form');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+
+        editToggleBtn.addEventListener('click', function () {
+            if (reportDisplay.style.display !== 'none') {
+                reportDisplay.style.display = 'none';
+                reportEditForm.style.display = 'block';
+                editToggleBtn.textContent = 'Preview';
+            } else {
+                const reportEdit = document.getElementById('report-edit');
+                reportDisplay.innerHTML = marked.parse(reportEdit.value);
+                reportDisplay.style.display = 'block';
+                reportEditForm.style.display = 'none';
+                editToggleBtn.textContent = 'Edit Report';
+
+                // Re-apply syntax highlighting
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightBlock(block);
+                });
+            }
+        });
+
+        cancelEditBtn.addEventListener('click', function () {
+            reportDisplay.style.display = 'block';
+            reportEditForm.style.display = 'none';
+            editToggleBtn.textContent = 'Edit Report';
+        });
+    });
+</script>
+{% endblock %}

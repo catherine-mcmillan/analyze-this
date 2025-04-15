@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Review Enhanced Prompt: {{ analysis.title }}</h2>
+        <p class="text-muted">We've created an enhanced prompt based on your input and column annotations. You can edit
+            it before proceeding.</p>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="card">
+                <div class="card-header">
+                    <h4>Enhanced Prompt</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {% if form.enhanced_prompt.errors %}
+                        {{ form.enhanced_prompt(class="form-control is-invalid", rows=15) }}
+                        <div class="invalid-feedback">
+                            {% for error in form.enhanced_prompt.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ form.enhanced_prompt(class="form-control", rows=15) }}
+                        {% endif %}
+                    </div>
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> The enhanced prompt includes your column annotations and sample data to
+                        provide context for the AI model.
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('analysis.create_prompt', analysis_id=analysis.id) }}"
+                            class="btn btn-secondary">Back</a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Upload CSV Data</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {% if form.title.errors %}
+                        {{ form.title(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.title.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ form.title(class="form-control") }}
+                        {% endif %}
+                        <small class="form-text text-muted">Give your analysis a descriptive title.</small>
+                    </div>
+                    <div class="mb-3">
+                        {{ form.file.label(class="form-label") }}
+                        {% if form.file.errors %}
+                        {{ form.file(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.file.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ form.file(class="form-control") }}
+                        {% endif %}
+                        <small class="form-text text-muted">Upload a CSV file (max 16MB).</small>
+                    </div>
+                    <div class="d-grid gap-2">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h4 class="card-title">CSV File Requirements</h4>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li>File must be in CSV format (.csv extension)</li>
+                    <li>The first row should contain column headers</li>
+                    <li>Data should be clean and properly formatted</li>
+                    <li>Maximum file size is 16MB</li>
+                </ul>
+                <p class="mb-0">
+                    <strong>Tip:</strong> For best results, ensure your CSV file has well-named columns and consistent
+                    data formats.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Your Analysis History</h2>
+            <a href="{{ url_for('analysis.upload') }}" class="btn btn-primary">New Analysis</a>
+        </div>
+
+        {% if analyses %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Created</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for analysis in analyses %}
+                    <tr>
+                        <td>{{ analysis.title }}</td>
+                        <td>{{ analysis.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if analysis.report %}
+                            <span class="badge bg-success">Completed</span>
+                            {% elif analysis.enhanced_prompt %}
+                            <span class="badge bg-info">Prompt Ready</span>
+                            {% elif analysis.prompt %}
+                            <span class="badge bg-warning">Prompt Created</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Columns Annotated</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                {% if analysis.report %}
+                                <a href="{{ url_for('analysis.view_report', analysis_id=analysis.id) }}"
+                                    class="btn btn-sm btn-primary">View Report</a>
+                                {% elif analysis.enhanced_prompt %}
+                                <a href="{{ url_for('analysis.review_prompt', analysis_id=analysis.id) }}"
+                                    class="btn btn-sm btn-primary">Continue</a>
+                                {% elif analysis.prompt %}
+                                <a href="{{ url_for('analysis.create_prompt', analysis_id=analysis.id) }}"
+                                    class="btn btn-sm btn-primary">Continue</a>
+                                {% else %}
+                                <a href="{{ url_for('analysis.annotate_columns', analysis_id=analysis.id) }}"
+                                    class="btn btn-sm btn-primary">Continue</a>
+                                {% endif %}
+
+                                <button type="button" class="btn btn-sm btn-danger"
+                                    onclick="confirmDelete({{ analysis.id }}, '{{ analysis.title }}')">
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <p class="mb-0">You haven't created any analyses yet. <a href="{{ url_for('analysis.upload') }}">Start a new
+                    analysis</a>.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the analysis "<span id="analysis-title"></span>"?</p>
+                <p>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-form" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function confirmDelete(analysisId, title) {
+        document.getElementById('analysis-title').textContent = title;
+        document.getElementById('delete-form').action = "{{ url_for('analysis.delete_analysis', analysis_id=0) }}".replace('0', analysisId);
+
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+</script>
+{% endblock %}

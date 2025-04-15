@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2>Annotate Columns: {{ analysis.title }}</h2>
+        <p class="text-muted">Provide context for each column to improve analysis results.</p>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Data Sample</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                {% for header in headers %}
+                                <th>{{ header }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in sample_data %}
+                            <tr>
+                                {% for header in headers %}
+                                <td>{{ row[header] }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Column Annotations</h4>
+                </div>
+                <div class="card-body">
+                    {% for header in headers %}
+                    <div class="card mb-3">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">{{ header }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="description_{{ header }}" class="form-label">What does this column
+                                    represent?</label>
+                                <input type="text" class="form-control" id="description_{{ header }}"
+                                    name="description_{{ header }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="source_{{ header }}" class="form-label">Data Source (optional)</label>
+                                <input type="text" class="form-control" id="source_{{ header }}"
+                                    name="source_{{ header }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="notes_{{ header }}" class="form-label">Additional Notes/Context
+                                    (optional)</label>
+                                <textarea class="form-control" id="notes_{{ header }}" name="notes_{{ header }}"
+                                    rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('analysis.upload') }}" class="btn btn-secondary">Back</a>
+                        <button type="submit" class="btn btn-primary">Continue to Prompt Creation</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>Create Analysis Prompt: {{ analysis.title }}</h2>
+        <p class="text-muted">Describe what you want to learn from your data.</p>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="card">
+                <div class="card-header">
+                    <h4>Your Analysis Prompt</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        {% if form.prompt.errors %}
+                        {{ form.prompt(class="form-control is-invalid", rows=5, placeholder="e.g., Analyze the sales
+                        trends over time, identify top performing products, and find correlations between variables.")
+                        }}
+                        <div class="invalid-feedback">
+                            {% for error in form.prompt.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ form.prompt(class="form-control", rows=5, placeholder="e.g., Analyze the sales trends over
+                        time, identify top performing products, and find correlations between variables.") }}
+                        {% endif %}
+                        <small class="form-text text-muted">Be specific about what insights you're looking for.</small>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('analysis.annotate_columns', analysis_id=analysis.id) }}"
+                            class="btn btn-secondary">Back</a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4>Prompt Templates</h4>
+            </div>
+            <div class="card-body">
+                <p>Click on a template to use it as a starting point:</p>
+                <div class="list-group">
+                    {% for template in prompt_templates %}
+                    <button type="button" class="list-group-item list-group-item-action template-item">
+                        {{ template }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <h5>Tips for Effective Prompts:</h5>
+                <ul class="mb-0">
+                    <li>Be specific about your goals</li>
+                    <li>Ask for specific statistical measures when needed</li>
+                    <li>Mention particular variables you're interested in</li>
+                    <li>Include any hypotheses you want to test</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const templateItems = document.querySelectorAll('.template-item');
+        const promptInput = document.getElementById('prompt');
+
+        templateItems.forEach(item => {
+            item.addEventListener('click', function () {
+                promptInput.value = this.textContent.trim();
+            });
+        });
+    });
+</script>
+{% endblock %}
