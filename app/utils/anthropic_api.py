@@ -74,18 +74,6 @@ def generate_analysis(prompt, api_key=None, model=None, max_tokens=4000):
         
         return analysis_text
     
-    except anthropic.APIError as e:
-        logger.error(f"Anthropic API error: {str(e)}")
-        raise AnthropicAPIError(f"API error: {str(e)}")
-    except anthropic.APIStatusError as e:
-        logger.error(f"Anthropic API status error: {str(e)}")
-        raise AnthropicAPIError(f"API status error: {str(e)}")
-    except anthropic.RateLimitError as e:
-        logger.error(f"Anthropic API rate limit exceeded: {str(e)}")
-        raise AnthropicAPIError(f"Rate limit exceeded: {str(e)}")
-    except anthropic.APITimeoutError as e:
-        logger.error(f"Anthropic API timeout: {str(e)}")
-        raise AnthropicAPIError(f"API timeout: {str(e)}")
     except Exception as e:
-        logger.error(f"Unexpected error calling Anthropic API: {str(e)}")
-        raise AnthropicAPIError(f"Unexpected error: {str(e)}")
+        logger.error(f"Anthropic API error: {str(e)}")
+        raise AnthropicAPIError(f"Failed to generate analysis: {str(e)}")

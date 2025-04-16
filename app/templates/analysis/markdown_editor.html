@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2 class="mb-4">{{ title }}</h2>
+
+            <!-- Markdown Editor -->
+            <div class="mb-4">
+                <textarea id="markdown-editor">{{ content }}</textarea>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Preview</h5>
+                </div>
+                <div class="card-body">
+                    <div id="preview" class="markdown-body"></div>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <form method="POST" id="save-form">
+                <input type="hidden" name="content" id="markdown-content">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize EasyMDE
+        const easyMDE = new EasyMDE({
+            element: document.getElementById('markdown-editor'),
+            spellChecker: false,
+            status: false,
+            toolbar: [
+                'bold', 'italic', 'heading', '|',
+                'quote', 'unordered-list', 'ordered-list', '|',
+                'link', 'image', 'table', '|',
+                'preview', 'side-by-side', 'fullscreen', '|',
+                'guide'
+            ],
+            previewRender: function (plainText) {
+                // Use marked.js to render markdown
+                const html = marked.parse(plainText);
+
+                // Apply syntax highlighting
+                const preview = document.getElementById('preview');
+                preview.innerHTML = html;
+                hljs.highlightAll();
+
+                return html;
+            }
+        });
+
+        // Update hidden input before form submission
+        document.getElementById('save-form').addEventListener('submit', function (e) {
+            document.getElementById('markdown-content').value = easyMDE.value();
+        });
+
+        // Initial preview render
+        easyMDE.codemirror.on('change', function () {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = marked.parse(easyMDE.value());
+            hljs.highlightAll();
+        });
+    });
+</script>
+{% endblock %}

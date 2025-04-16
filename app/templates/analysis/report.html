@@ -1,11 +1,37 @@
 {% extends "base.html" %}
 
 {% block styles %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/github.min.css">
 <style>
-    .report-container {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        line-height: 1.6;
+    .editor-container {
+        display: flex;
+        height: 75vh;
+        overflow: hidden;
+    }
+
+    .editor-pane {
+        flex: 1;
+        overflow: auto;
+        height: 100%;
+    }
+
+    .preview-pane {
+        flex: 1;
+        padding: 20px;
+        overflow: auto;
+        height: 100%;
+        border-left: 1px solid #eaeaea;
+        background-color: #fafafa;
+    }
+
+    .editor-toolbar {
+        border: none;
+        background-color: #f8f9fa;
+    }
+
+    .CodeMirror {
+        height: 100% !important;
     }
 
     .report-container h1,
@@ -17,18 +43,6 @@
         margin-top: 1.5rem;
         margin-bottom: 1rem;
         font-weight: 600;
-    }
-
-    .report-container h1 {
-        font-size: 1.8rem;
-    }
-
-    .report-container h2 {
-        font-size: 1.6rem;
-    }
-
-    .report-container h3 {
-        font-size: 1.4rem;
     }
 
     .report-container table {
@@ -43,20 +57,20 @@
         border: 1px solid #ddd;
     }
 
-    .report-container table th {
-        background-color: #f5f5f5;
+    .report-container blockquote {
+        margin-left: 1rem;
+        padding-left: 1rem;
+        border-left: 4px solid #eaeaea;
+        color: #666;
     }
 
-    .report-container pre {
-        background-color: #f5f5f5;
-        padding: 1rem;
+    .actions-bar {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background-color: #f8f9fa;
         border-radius: 4px;
-        overflow-x: auto;
-    }
-
-    .report-container img {
-        max-width: 100%;
-        height: auto;
     }
 </style>
 {% endblock %}
@@ -64,79 +78,189 @@
 {% block content %}
 <div class="row">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Analysis Report: {{ analysis.title }}</h2>
+        <div class="actions-bar">
             <div>
-                <button class="btn btn-outline-primary" id="edit-toggle-btn">Edit Report</button>
-                <a href="{{ url_for('analysis.export_report', analysis_id=analysis.id) }}"
-                    class="btn btn-success">Export Report</a>
-                <a href="{{ url_for('analysis.history') }}" class="btn btn-secondary">Back to History</a>
+                <h2 class="mb-0">{{ analysis.title }}</h2>
+            </div>
+            <div>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-outline-primary" id="view-mode-btn" title="View Mode">
+                        <i class="bi bi-eye"></i> View
+                    </button>
+                    <button class="btn btn-outline-primary" id="edit-mode-btn" title="Edit Mode">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button class="btn btn-outline-primary" id="split-mode-btn" title="Split Mode">
+                        <i class="bi bi-layout-split"></i> Split
+                    </button>
+                </div>
+                <a href="{{ url_for('analysis.export_report', analysis_id=analysis.id) }}" class="btn btn-success ml-2"
+                    title="Export as Markdown">
+                    <i class="bi bi-download"></i> Export
+                </a>
+                <a href="{{ url_for('analysis.history') }}" class="btn btn-secondary ml-2">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
             </div>
         </div>
 
-        <div class="card">
+        <!-- View Mode -->
+        <div id="view-container" class="card" style="display: block;">
             <div class="card-body">
                 <div id="report-display" class="report-container markdown-body">
                     {{ analysis.report|safe }}
                 </div>
-
-                <form method="POST" id="report-edit-form" style="display: none;">
-                    <textarea id="report-edit" name="report" class="form-control"
-                        rows="20">{{ analysis.report }}</textarea>
-                    <div class="mt-3">
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                        <button type="button" class="btn btn-outline-secondary" id="cancel-edit-btn">Cancel</button>
-                    </div>
-                </form>
             </div>
+        </div>
+
+        <!-- Edit Mode -->
+        <div id="edit-container" style="display: none;">
+            <form method="POST" id="report-edit-form">
+                <div class="editor-container">
+                    <div class="editor-pane">
+                        <textarea id="report-editor" name="report">{{ analysis.report }}</textarea>
+                    </div>
+                    <div class="preview-pane d-none" id="preview-pane">
+                        <div id="editor-preview" class="report-container"></div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Save Changes
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="cancel-edit-btn">
+                        <i class="bi bi-x"></i> Cancel
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/marked@4.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/highlight.min.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Render markdown content
+        // Elements
+        const viewContainer = document.getElementById('view-container');
+        const editContainer = document.getElementById('edit-container');
         const reportDisplay = document.getElementById('report-display');
-        reportDisplay.innerHTML = marked.parse(reportDisplay.textContent.trim());
-
-        // Apply syntax highlighting
-        document.querySelectorAll('pre code').forEach((block) => {
-            hljs.highlightBlock(block);
-        });
-
-        // Toggle edit mode
-        const editToggleBtn = document.getElementById('edit-toggle-btn');
-        const reportEditForm = document.getElementById('report-edit-form');
+        const previewPane = document.getElementById('preview-pane');
+        const viewModeBtn = document.getElementById('view-mode-btn');
+        const editModeBtn = document.getElementById('edit-mode-btn');
+        const splitModeBtn = document.getElementById('split-mode-btn');
         const cancelEditBtn = document.getElementById('cancel-edit-btn');
 
-        editToggleBtn.addEventListener('click', function () {
-            if (reportDisplay.style.display !== 'none') {
-                reportDisplay.style.display = 'none';
-                reportEditForm.style.display = 'block';
-                editToggleBtn.textContent = 'Preview';
-            } else {
-                const reportEdit = document.getElementById('report-edit');
-                reportDisplay.innerHTML = marked.parse(reportEdit.value);
-                reportDisplay.style.display = 'block';
-                reportEditForm.style.display = 'none';
-                editToggleBtn.textContent = 'Edit Report';
-
-                // Re-apply syntax highlighting
-                document.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightBlock(block);
-                });
-            }
+        // Initialize Markdown Editor
+        const easyMDE = new EasyMDE({
+            element: document.getElementById('report-editor'),
+            spellChecker: true,
+            autosave: {
+                enabled: true,
+                uniqueId: 'report-{{ analysis.id }}',
+                delay: 1000,
+            },
+            toolbar: [
+                'bold', 'italic', 'heading', '|',
+                'quote', 'unordered-list', 'ordered-list', '|',
+                'link', 'image', 'table', '|',
+                'preview', 'side-by-side', 'fullscreen', '|',
+                'guide'
+            ],
+            previewRender: function (plainText) {
+                // Custom renderer for preview
+                return marked.parse(plainText);
+            },
+            status: ['autosave', 'lines', 'words'],
+            placeholder: 'Edit your report here...'
         });
 
+        // Render markdown content
+        function renderMarkdown() {
+            reportDisplay.innerHTML = marked.parse(reportDisplay.textContent.trim());
+
+            // Apply syntax highlighting
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightBlock(block);
+            });
+        }
+
+        renderMarkdown();
+
+        // View mode button
+        viewModeBtn.addEventListener('click', function () {
+            viewContainer.style.display = 'block';
+            editContainer.style.display = 'none';
+
+            // Update button active state
+            viewModeBtn.classList.add('active');
+            editModeBtn.classList.remove('active');
+            splitModeBtn.classList.remove('active');
+
+            // Render markdown content
+            renderMarkdown();
+        });
+
+        // Edit mode button
+        editModeBtn.addEventListener('click', function () {
+            viewContainer.style.display = 'none';
+            editContainer.style.display = 'block';
+            previewPane.classList.add('d-none');
+
+            // Update button active state
+            viewModeBtn.classList.remove('active');
+            editModeBtn.classList.add('active');
+            splitModeBtn.classList.remove('active');
+
+            // Focus editor
+            easyMDE.codemirror.focus();
+        });
+
+        // Split mode button
+        splitModeBtn.addEventListener('click', function () {
+            viewContainer.style.display = 'none';
+            editContainer.style.display = 'block';
+            previewPane.classList.remove('d-none');
+
+            // Update button active state
+            viewModeBtn.classList.remove('active');
+            editModeBtn.classList.remove('active');
+            splitModeBtn.classList.add('active');
+
+            // Update preview content
+            document.getElementById('editor-preview').innerHTML = marked.parse(easyMDE.value());
+
+            // Focus editor
+            easyMDE.codemirror.focus();
+        });
+
+        // Cancel edit button
         cancelEditBtn.addEventListener('click', function () {
-            reportDisplay.style.display = 'block';
-            reportEditForm.style.display = 'none';
-            editToggleBtn.textContent = 'Edit Report';
+            viewContainer.style.display = 'block';
+            editContainer.style.display = 'none';
+
+            // Update button active state
+            viewModeBtn.classList.add('active');
+            editModeBtn.classList.remove('active');
+            splitModeBtn.classList.remove('active');
+
+            // Revert editor content to original report
+            easyMDE.value('{{ analysis.report|escapejs }}');
+        });
+
+        // Live preview update
+        easyMDE.codemirror.on('change', function () {
+            if (previewPane.classList.contains('d-none')) return;
+            document.getElementById('editor-preview').innerHTML = marked.parse(easyMDE.value());
+
+            // Apply syntax highlighting
+            document.querySelectorAll('#editor-preview pre code').forEach((block) => {
+                hljs.highlightBlock(block);
+            });
         });
     });
 </script>

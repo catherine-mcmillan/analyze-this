@@ -2,85 +2,109 @@ import pytest
 import os
 import tempfile
 import pandas as pd
-from app import create_app
-from app.utils.csv_parser import save_csv_file, parse_csv_headers, get_csv_sample
+from app import create_app, db
+from app.utils.csv_parser import save_csv_file, parse_csv_headers, get_csv_sample, validate_csv_file, CSVValidationError
+from unittest.mock import patch
 from tests.config import TestConfig
 
 @pytest.fixture
 def app():
     app = create_app(TestConfig)
-    
     with app.app_context():
+        db.create_all()
         yield app
+        db.session.remove()
+        db.drop_all()
 
 @pytest.fixture
-def test_csv_file():
-    """Create a temporary CSV file for testing"""
-    fd, path = tempfile.mkstemp(suffix='.csv')
-    try:
-        with os.fdopen(fd, 'w') as f:
-            f.write("id,name,value\n")
-            f.write("1,test1,10.5\n")
-            f.write("2,test2,20.3\n")
-            f.write("3,test3,30.1\n")
-        yield path
-    finally:
-        os.unlink(path)
+def client(app):
+    return app.test_client()
+
+@pytest.fixture
+def test_csv_file(tmp_path):
+    # Create a test CSV file
+    df = pd.DataFrame({
+        'name': ['Alice', 'Bob', 'Charlie'],
+        'age': [25, 30, 35],
+        'score': [85, 90, 95]
+    })
+    file_path = tmp_path / "test.csv"
+    df.to_csv(file_path, index=False)
+    return file_path
 
 def test_parse_csv_headers(app, test_csv_file):
     """Test parsing CSV headers"""
     headers = parse_csv_headers(test_csv_file)
-    assert headers == ['id', 'name', 'value']
+    assert headers == ['name', 'age', 'score']
 
 def test_get_csv_sample(app, test_csv_file):
     """Test getting a sample of CSV data"""
     df = get_csv_sample(test_csv_file)
     assert len(df) == 3
-    assert list(df.columns) == ['id', 'name', 'value']
-    assert df.iloc[0]['name'] == 'test1'
-    assert df.iloc[1]['value'] == 20.3
+    assert list(df.columns) == ['name', 'age', 'score']
+    assert df.iloc[0]['name'] == 'Alice'
+    assert df.iloc[1]['age'] == 30
 
-def test_save_csv_file(app):
+def test_save_csv_file(app, test_csv_file, test_user):
     """Test saving a CSV file"""
-    # Create test CSV content
-    test_data = "id,name,value\n1,test1,10.5\n"
-    
-    # Create a temporary test file
-    with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as temp_file:
-        temp_file.write(test_data.encode('utf-8'))
-        temp_path = temp_file.name
-    
-    try:
-        # Create an in-memory file-like object to simulate a file upload
+    with open(test_csv_file, 'rb') as f:
+        # Create a file-like object
         from io import BytesIO
-        file_obj = BytesIO(test_data.encode('utf-8'))
+        file_obj = BytesIO(f.read())
         file_obj.filename = 'test.csv'
         
-        # Save the file
-        saved_path = save_csv_file(file_obj, 'saved_test.csv')
+        # Save the file and create analysis
+        analysis = save_csv_file(
+            file_obj,
+            user_id=test_user.id,
+            title='Test Analysis',
+            description='Test Description'
+        )
         
-        # Check the file exists and has correct content
-        assert os.path.exists(saved_path)
-        with open(saved_path, 'r') as f:
-            content = f.read()
-        assert content == test_data
+        # Verify the analysis was created
+        assert analysis is not None
+        assert analysis.title == 'Test Analysis'
+        assert analysis.user_id == test_user.id
+        assert analysis.row_count == 3
+        assert analysis.column_count == 3
+        
+        # Verify the files were saved
+        assert os.path.exists(analysis.file_path)
+        assert os.path.exists(analysis.profile_path)
         
         # Clean up
-        os.unlink(saved_path)
-    finally:
-        # Clean up the original temp file
-        os.unlink(temp_path)
+        os.remove(analysis.file_path)
+        os.remove(analysis.profile_path)
+        db.session.delete(analysis)
+        db.session.commit()
 
-def test_handle_invalid_csv(app):
+def test_validate_csv_file(app, test_csv_file):
+    """Test CSV file validation"""
+    metadata = validate_csv_file(test_csv_file)
+    assert metadata['rows'] == 3
+    assert metadata['columns'] == 3
+    assert metadata['column_names'] == ['name', 'age', 'score']
+    assert metadata['has_header'] is True
+
+def test_invalid_csv_file(app):
     """Test handling invalid CSV files"""
     # Create an invalid CSV file
-    fd, path = tempfile.mkstemp(suffix='.csv')
+    with tempfile.NamedTemporaryFile(suffix='.csv', delete=False) as f:
+        f.write(b"This is not a valid CSV file")
+        invalid_path = f.name
+    
     try:
-        with os.fdopen(fd, 'w') as f:
-            f.write("This is not a valid CSV file")
-        
-        # Test that an exception is raised when parsing headers
-        with pytest.raises(ValueError):
-            parse_csv_headers(path)
+        with pytest.raises(CSVValidationError):
+            validate_csv_file(invalid_path)
     finally:
-        os.unlink(path)
+        os.remove(invalid_path)
+
+def test_save_csv_file_validation_error(app, test_user):
+    """Test handling validation errors during file save"""
+    # Create an invalid file object
+    from io import BytesIO
+    file_obj = BytesIO(b"Invalid CSV content")
+    file_obj.filename = 'test.csv'
+
+    with pytest.raises(CSVValidationError):
+        save_csv_file(file_obj, test_user.id)

@@ -1,5 +1,6 @@
-from app import create_app, db
-from app.models import User, Analysis
+from app import create_app
+from app.models.user import User
+from app.models.analysis import Analysis
 from flask_migrate import Migrate
 
 app = create_app()

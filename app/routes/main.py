@@ -5,6 +5,10 @@ from datetime import datetime, timedelta
 
 main_bp = Blueprint('main', __name__)
 
+@main_bp.route('/')
+def home():
+    return render_template('home.html', title='Home')
+
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
