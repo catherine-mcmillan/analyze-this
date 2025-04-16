@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.css">
+<style>
+    .stats-card {
+        border-left: 4px solid #4e73df;
+        border-radius: 0.25rem;
+    }
+
+    .stats-card-primary {
+        border-color: #4e73df;
+    }
+
+    .stats-card-success {
+        border-color: #1cc88a;
+    }
+
+    .stats-card-info {
+        border-color: #36b9cc;
+    }
+
+    .stats-card-warning {
+        border-color: #f6c23e;
+    }
+
+    .chart-container {
+        height: 20rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Dashboard</h1>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card stats-card-primary h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Analyses</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ analyses_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card stats-card-success h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Completed Analyses</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ completed_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card stats-card-info h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Completion Rate</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            {{ (completed_count / analyses_count * 100)|round|int if analyses_count else 0 }}%
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-percent fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card stats-card-warning h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            In Progress</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ analyses_count - completed_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-spinner fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="m-0 font-weight-bold">Analysis History</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="analysisHistoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="m-0 font-weight-bold">Column Types</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="columnTypesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Analyses -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="m-0 font-weight-bold">Recent Analyses</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_analyses %}
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Created</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for analysis in recent_analyses %}
+                            <tr>
+                                <td>{{ analysis.title }}</td>
+                                <td>{{ analysis.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if analysis.report %}
+                                    <span class="badge bg-success">Completed</span>
+                                    {% elif analysis.enhanced_prompt %}
+                                    <span class="badge bg-info">Prompt Ready</span>
+                                    {% elif analysis.prompt %}
+                                    <span class="badge bg-warning">Prompt Created</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Columns Annotated</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if analysis.report %}
+                                    <a href="{{ url_for('analysis.view_report', analysis_id=analysis.id) }}"
+                                        class="btn btn-sm btn-primary">View Report</a>
+                                    {% else %}
+                                    <a href="{{ url_for('analysis.annotate_columns', analysis_id=analysis.id) }}"
+                                        class="btn btn-sm btn-primary">Continue</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center">You haven't created any analyses yet.</p>
+                <div class="text-center">
+                    <a href="{{ url_for('analysis.upload') }}" class="btn btn-primary">Start New Analysis</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+<script
+    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Analysis History Chart
+        const historyCtx = document.getElementById('analysisHistoryChart').getContext('2d');
+        const historyChart = new Chart(historyCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ monthly_counts| map(attribute = 'month') | list | tojson }},
+        datasets: [{
+            label: 'Analyses Created',
+            data: {{ monthly_counts| map(attribute = 'count') | list | tojson }},
+        backgroundColor: 'rgba(78, 115, 223, 0.8)',
+        borderColor: 'rgba(78, 115, 223, 1)',
+        borderWidth: 1
+            }]
+        },
+        options: {
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    precision: 0
+                }
+            }
+        }
+    }
+    });
+
+    // Column Types Chart
+    const typesCtx = document.getElementById('columnTypesChart').getContext('2d');
+    const typesChart = new Chart(typesCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Numeric', 'Text', 'DateTime', 'Boolean', 'Other'],
+            datasets: [{
+                data: [
+                    {{ column_types.numeric }},
+            {{ column_types.text }},
+                    {{ column_types.datetime }},
+    { { column_types.boolean } },
+    { { column_types.other } }
+                ],
+    backgroundColor: [
+        'rgba(78, 115, 223, 0.8)',
+        'rgba(28, 200, 138, 0.8)',
+        'rgba(54, 185, 204, 0.8)',
+        'rgba(246, 194, 62, 0.8)',
+        'rgba(231, 74, 59, 0.8)'
+    ],
+        borderWidth: 1
+            }]
+        },
+    options: {
+        maintainAspectRatio: false,
+            plugins: {
+            legend: {
+                position: 'right'
+            }
+        }
+    }
+    });
+});
+</script>
+{% endblock %}

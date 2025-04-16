@@ -1,23 +1,37 @@
+/* Coolors Palette Variables */
+:root {
+    --color-dark: #1d1e18;
+    --color-green: #6b8f71;
+    --color-light-green: #aad2ba;
+    --color-mint: #b9f5d8;
+    --color-very-light: #d9fff5;
+}
+
 /* Main Styling */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #333;
-    background-color: #f8f9fa;
+    color: var(--color-dark);
+    background-color: var(--color-very-light);
 }
 
 .navbar {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(29, 30, 24, 0.08);
+    background-color: var(--color-green);
+    color: var(--color-very-light);
 }
 
 .card {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(29, 30, 24, 0.10);
     border-radius: 8px;
     margin-bottom: 20px;
+    background-color: var(--color-mint);
+    border: 1px solid var(--color-light-green);
 }
 
 .card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    background-color: var(--color-very-light);
+    border-bottom: 1px solid var(--color-light-green);
+    color: var(--color-dark);
 }
 
 /* Feature icons */
@@ -28,36 +42,41 @@ body {
     width: 64px;
     height: 64px;
     font-size: 32px;
+    background: var(--color-light-green);
+    color: var(--color-dark);
+    border-radius: 50%;
 }
 
 /* Form styling */
 .form-control:focus {
-    border-color: #80bdff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    border-color: var(--color-green);
+    box-shadow: 0 0 0 0.2rem rgba(106, 143, 113, 0.25);
 }
 
 /* Tables */
 .table-responsive {
     border-radius: 8px;
     overflow: hidden;
+    background: var(--color-very-light);
 }
 
 .table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.1);
+    background-color: var(--color-mint);
 }
 
 /* Footer */
 footer {
     margin-top: 3rem;
     padding: 1.5rem 0;
-    color: #6c757d;
-    background-color: #f8f9fa;
-    border-top: 1px solid #e9ecef;
+    color: var(--color-green);
+    background-color: var(--color-very-light);
+    border-top: 1px solid var(--color-light-green);
 }
 
 /* Specific elements */
 .report-container {
-    background-color: white;
+    background-color: var(--color-very-light);
     padding: 25px;
     border-radius: 8px;
+    border: 1px solid var(--color-mint);
 }

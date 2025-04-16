@@ -12,6 +12,8 @@ from werkzeug.utils import secure_filename
 import json
 import pandas as pd
 from io import BytesIO
+import io
+import zipfile
 
 analysis_bp = Blueprint('analysis', __name__)
 
@@ -223,9 +225,9 @@ def view_report(analysis_id):
         analysis=analysis
     )
 
-@analysis_bp.route('/export/<int:analysis_id>')
+@analysis_bp.route('/export/<int:analysis_id>/<format>')
 @login_required
-def export_report(analysis_id):
+def export_report(analysis_id, format):
     # Get the analysis record
     analysis = Analysis.query.get_or_404(analysis_id)
     
@@ -233,24 +235,68 @@ def export_report(analysis_id):
     if analysis.user_id != current_user.id:
         abort(403)
     
-    # Prepare report text
-    report_text = analysis.report
+    # Export based on requested format
+    if format == 'md':
+        # Create a markdown file
+        buffer = BytesIO()
+        buffer.write(analysis.report.encode('utf-8'))
+        buffer.seek(0)
+        
+        filename = f"analysis_report_{analysis.title.replace(' ', '_')}.md"
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='text/markdown'
+        )
     
-    # Create a text file in memory
-    buffer = BytesIO()
-    buffer.write(report_text.encode('utf-8'))
-    buffer.seek(0)
+    elif format == 'pdf':
+        # Generate PDF
+        pdf_buffer = export_to_pdf(analysis.report, analysis.title)
+        filename = f"analysis_report_{analysis.title.replace(' ', '_')}.pdf"
+        
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
     
-    # Generate filename
-    filename = f"analysis_report_{analysis.title.replace(' ', '_')}.md"
+    elif format == 'csv':
+        # Extract tables to CSV
+        csv_files = extract_tables_to_csv(analysis.report)
+        
+        if not csv_files:
+            flash('No tables found in the report to export to CSV', 'warning')
+            return redirect(url_for('analysis.view_report', analysis_id=analysis.id))
+        
+        # If only one table, return it directly
+        if len(csv_files) == 1:
+            filename, buffer = csv_files[0]
+            return send_file(
+                buffer,
+                as_attachment=True,
+                download_name=f"analysis_data_{analysis.title.replace(' ', '_')}.csv",
+                mimetype='text/csv'
+            )
+        
+        # For multiple tables, create a zip file
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+            for filename, file_buffer in csv_files:
+                zip_file.writestr(filename, file_buffer.getvalue())
+        
+        zip_buffer.seek(0)
+        return send_file(
+            zip_buffer,
+            as_attachment=True,
+            download_name=f"analysis_tables_{analysis.title.replace(' ', '_')}.zip",
+            mimetype='application/zip'
+        )
     
-    # Return the file for download
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name=filename,
-        mimetype='text/markdown'
-    )
+    else:
+        flash(f'Unsupported export format: {format}', 'danger')
+        return redirect(url_for('analysis.view_report', analysis_id=analysis.id))
 
 @analysis_bp.route('/history')
 @login_required

@@ -1,0 +1,41 @@
+# Core Flask stack
+Flask
+Flask-Bootstrap
+Flask-Caching
+Flask-Login
+Flask-Migrate
+Flask-SQLAlchemy
+Flask-WTF
+Flask-Mail
+
+# Database
+SQLAlchemy
+
+# Forms and validation
+WTForms
+email-validator
+
+# Security
+itsdangerous
+bcrypt
+
+# Data science and export
+pandas
+numpy
+scipy
+statsmodels
+markdown
+weasyprint
+beautifulsoup4
+tenacity
+
+# Visualization
+plotly
+
+# Other utilities
+python-dotenv
+tqdm
+
+
+requests
+gunicorn  
